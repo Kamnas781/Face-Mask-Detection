@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.h5
+.env
+.env.*
+
+dataset/*
+!dataset/with_mask/
+!dataset/without_mask/
+dataset/with_mask/*
+dataset/without_mask/*
+!dataset/with_mask/.gitkeep
+!dataset/without_mask/.gitkeep
+
+face mask detection data/

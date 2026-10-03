@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Face Mask Detection</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #090d18;
+        --panel: #1c1d2b;
+        --panel-soft: #292535;
+        --text: #f5ecd8;
+        --muted: #c0b69f;
+        --line: rgba(213, 181, 111, 0.22);
+        --cyan: #d9b96e;
+        --blue: #73506d;
+        --safe: #4de0a0;
+        --danger: #ff657a;
+        --warning: #ffc66b;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100svh;
+        padding: clamp(14px, 3vw, 42px);
+        background:
+          radial-gradient(ellipse at 12% 5%, rgba(130, 93, 43, 0.2), transparent 34rem),
+          radial-gradient(ellipse at 94% 88%, rgba(106, 39, 62, 0.18), transparent 32rem),
+          radial-gradient(circle at 70% 16%, rgba(213, 181, 111, 0.08) 0 1px, transparent 2px),
+          radial-gradient(circle at 30% 72%, rgba(213, 181, 111, 0.07) 0 1px, transparent 2px),
+          var(--bg);
+        color: var(--text);
+        font-family: Inter, "Segoe UI", Arial, sans-serif;
+      }
+
+      @keyframes rise-in {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes scan-sweep {
+        0% { transform: translateY(-110%); opacity: 0; }
+        12%, 82% { opacity: 0.62; }
+        100% { transform: translateY(110%); opacity: 0; }
+      }
+
+      @keyframes live-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(77, 224, 160, 0.45); }
+        50% { box-shadow: 0 0 0 6px rgba(77, 224, 160, 0); }
+      }
+
+      .app {
+        width: min(1440px, 100%);
+        margin: 0 auto;
+        background: linear-gradient(145deg, rgba(28, 29, 43, 0.97), rgba(15, 19, 31, 0.98));
+        border: 1px solid rgba(213, 181, 111, 0.3);
+        border-radius: 24px;
+        padding: clamp(20px, 4vw, 48px);
+        box-shadow: 0 30px 100px rgba(0, 0, 0, 0.55), 0 0 80px rgba(160, 107, 52, 0.08);
+        animation: rise-in 650ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+      }
+
+      h1 {
+        margin: 4px 0 8px;
+        text-align: left;
+        font-size: clamp(2.1rem, 5vw, 4rem);
+        line-height: 1.02;
+        letter-spacing: -0.055em;
+        overflow-wrap: anywhere;
+        color: #f7edda;
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 600;
+      }
+
+      .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding-bottom: clamp(20px, 3vw, 34px);
+        border-bottom: 1px solid var(--line);
+        animation: rise-in 600ms 80ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+      }
+
+      .page-title { min-width: 0; }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--cyan);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .eyebrow::before {
+        width: 22px;
+        height: 1px;
+        background: currentColor;
+        content: "";
+      }
+      .page-subtitle { margin: 0; color: var(--muted); font-size: 0.98rem; line-height: 1.5; }
+
+      .saved-data-link {
+        flex: 0 0 auto;
+        padding: 12px 17px;
+        border: 1px solid rgba(217, 185, 110, 0.42);
+        border-radius: 999px;
+        background: rgba(217, 185, 110, 0.08);
+        color: var(--text);
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+      }
+
+      .saved-data-link:hover { transform: translateY(-1px); border-color: var(--cyan); background: rgba(217, 185, 110, 0.15); }
+
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      input[type="file"] {
+        width: 100%;
+        min-width: 0;
+        padding: 14px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.05);
+        color: var(--text);
+        border: 1px solid rgba(255,255,255,0.1);
+        font-size: 0.95rem;
+      }
+
+      button {
+        min-height: 46px;
+        padding: 12px 18px;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(120deg, #8b6840, #6e344a);
+        color: white;
+        font-size: 0.92rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 8px 22px rgba(111, 61, 54, 0.26);
+        transition: filter 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+      }
+
+      button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.12); box-shadow: 0 10px 26px rgba(183, 137, 66, 0.25); }
+      button:disabled { cursor: not-allowed; opacity: 0.55; box-shadow: none; }
+      button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
+      .camera-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.72fr);
+        gap: clamp(20px, 3vw, 38px);
+        align-items: stretch;
+        margin-top: clamp(22px, 3vw, 36px);
+      }
+
+      .camera-view {
+        position: relative;
+        min-height: clamp(340px, 46vw, 620px);
+        overflow: hidden;
+        align-self: stretch;
+        border: 1px solid rgba(213, 181, 111, 0.25);
+        border-radius: 20px;
+        background:
+          radial-gradient(ellipse at 50% 46%, rgba(117, 79, 52, 0.2), transparent 58%),
+          linear-gradient(145deg, #100f18, #080b14);
+        box-shadow: inset 0 0 70px rgba(93, 55, 44, 0.25);
+        animation: rise-in 700ms 160ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+      }
+
+      .camera-scanline {
+        position: absolute;
+        z-index: 1;
+        inset: 0 0 auto;
+        height: 30%;
+        opacity: 0;
+        background: linear-gradient(180deg, transparent, rgba(217, 185, 110, 0.08), rgba(217, 185, 110, 0.22));
+        pointer-events: none;
+      }
+
+      .camera-view.is-live .camera-scanline { animation: scan-sweep 4.8s ease-in-out infinite; }
+      .camera-view.is-live .feed-badge::before { animation: live-pulse 1.8s ease-in-out infinite; }
+
+      .camera-view::before,
+      .camera-view::after {
+        position: absolute;
+        z-index: 1;
+        width: 34px;
+        height: 34px;
+        border-color: rgba(217, 185, 110, 0.82);
+        border-style: solid;
+        content: "";
+        pointer-events: none;
+      }
+
+      .camera-view::before { top: 18px; left: 18px; border-width: 1px 0 0 1px; }
+      .camera-view::after { right: 18px; bottom: 18px; border-width: 0 1px 1px 0; }
+
+      .feed-badge {
+        position: absolute;
+        z-index: 2;
+        top: 22px;
+        right: 22px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 11px;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 999px;
+        background: rgba(5, 9, 18, 0.72);
+        color: rgba(242,245,255,0.8);
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        backdrop-filter: blur(12px);
+      }
+
+      .feed-badge::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--warning);
+        box-shadow: 0 0 12px currentColor;
+        content: "";
+      }
+
+      .mask-status {
+        position: absolute;
+        z-index: 3;
+        bottom: 22px;
+        left: 22px;
+        display: none;
+        align-items: center;
+        gap: 9px;
+        padding: 11px 15px;
+        border: 1px solid rgba(77, 224, 160, 0.38);
+        border-radius: 999px;
+        background: rgba(5, 13, 19, 0.82);
+        color: #82f2bd;
+        font-size: 0.78rem;
+        font-weight: 850;
+        letter-spacing: 0.1em;
+        box-shadow: 0 8px 28px rgba(0,0,0,0.28), 0 0 22px rgba(77,224,160,0.1);
+        backdrop-filter: blur(12px);
+      }
+
+      .mask-status:not([hidden]) { display: inline-flex; }
+      .mask-status.without-mask {
+        border-color: rgba(255, 101, 122, 0.42);
+        color: #ff8b9c;
+        box-shadow: 0 8px 28px rgba(0,0,0,0.28), 0 0 22px rgba(255,101,122,0.1);
+      }
+      .mask-status::before {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 12px currentColor;
+        content: "";
+      }
+
+      .camera-view video {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: inherit;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+      }
+
+      .camera-view video[hidden] { display: none; }
+
+      .camera-placeholder {
+        min-height: inherit;
+        display: grid;
+        place-content: center;
+        gap: 10px;
+        padding: 32px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .camera-placeholder[hidden] { display: none; }
+      .camera-placeholder span:first-child { color: var(--text); font-size: 1.35rem; font-weight: 750; }
+      .camera-placeholder::before {
+        width: 74px;
+        height: 74px;
+        margin: 0 auto 12px;
+        border: 1px solid rgba(217, 185, 110, 0.4);
+        border-radius: 50%;
+        background:
+          radial-gradient(circle, rgba(217, 185, 110, 0.24) 0 2px, transparent 3px),
+          radial-gradient(circle, transparent 0 25px, rgba(217, 185, 110, 0.14) 26px 27px, transparent 28px);
+        box-shadow: 0 0 42px rgba(217, 185, 110, 0.1), inset 0 0 30px rgba(217, 185, 110, 0.07);
+        content: "";
+      }
+
+      .camera-controls {
+        position: absolute;
+        z-index: 4;
+        right: 22px;
+        bottom: 22px;
+        display: flex;
+        gap: 10px;
+      }
+
+      .camera-controls button {
+        min-height: 42px;
+        padding: 10px 14px;
+        border: 1px solid rgba(217, 185, 110, 0.56);
+        background: rgba(13, 12, 20, 0.9);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+        backdrop-filter: blur(12px);
+      }
+
+      .camera-controls .secondary {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(13, 12, 20, 0.86);
+        color: var(--text);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.26);
+      }
+
+      .camera-controls button:disabled { opacity: 0.5; }
+      .camera-panel > div:last-child { animation: rise-in 700ms 250ms cubic-bezier(0.2, 0.75, 0.25, 1) both; }
+
+      .camera-status {
+        min-height: 50px;
+        margin: 18px 0 0;
+        padding: 13px 14px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255,255,255,0.025);
+        color: var(--muted);
+        font-size: 0.84rem;
+        line-height: 1.45;
+      }
+
+      .dataset-creator {
+        margin-top: 20px;
+        padding: 17px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: linear-gradient(145deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012));
+      }
+
+      .dataset-creator > label {
+        display: block;
+        margin-bottom: 11px;
+        color: var(--text);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.035em;
+      }
+
+      .dataset-name-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .dataset-name-row input {
+        flex: 1 1 100%;
+        min-width: 0;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: rgba(5, 9, 18, 0.48);
+        color: var(--text);
+        font: inherit;
+      }
+
+      .dataset-name-row button { flex: 1 1 auto; min-height: 40px; padding: 9px 11px; font-size: 0.78rem; }
+      .dataset-name-row .delete-dataset {
+        border: 1px solid rgba(255,101,122,0.4);
+        background: rgba(255,101,122,0.08);
+        color: #ff9baa;
+        box-shadow: none;
+      }
+      .dataset-name-row .clear-dataset {
+        border: 1px solid rgba(255,198,107,0.38);
+        background: rgba(255,198,107,0.07);
+        color: #ffd98a;
+        box-shadow: none;
+      }
+      .dataset-folder-status { min-height: 1.4em; margin: 10px 0 0; color: var(--muted); font-size: 0.76rem; line-height: 1.5; }
+
+      .network-camera {
+        margin-top: 14px;
+        padding: 17px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: linear-gradient(145deg, rgba(106, 39, 62, 0.14), rgba(213, 181, 111, 0.025));
+      }
+
+      .network-camera > label {
+        display: block;
+        margin-bottom: 11px;
+        color: var(--text);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.035em;
+      }
+
+      .network-camera input {
+        width: 100%;
+        min-width: 0;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: rgba(5, 9, 18, 0.48);
+        color: var(--text);
+        font: inherit;
+      }
+
+      .network-camera button { width: 100%; margin-top: 10px; background: linear-gradient(120deg, #8b6840, #6e344a); }
+      .network-camera-note { margin: 10px 0 0; color: var(--muted); font-size: 0.74rem; line-height: 1.55; }
+      .network-camera-status { min-height: 1.4em; margin: 8px 0 0; color: var(--cyan); font-size: 0.78rem; line-height: 1.4; }
+
+      .result {
+        margin-top: 24px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        text-align: center;
+        font-size: 1.55rem;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        background: rgba(255,255,255,0.035);
+      }
+
+      .result.safe {
+        border-color: rgba(77,224,160,0.24);
+        background: rgba(77, 224, 160, 0.09);
+        color: #82f2bd;
+      }
+
+      .result.danger {
+        border-color: rgba(255,101,122,0.24);
+        background: rgba(255, 101, 122, 0.09);
+        color: #ff8b9c;
+      }
+
+      .result.warning {
+        background: rgba(243, 156, 18, 0.18);
+        color: var(--warning);
+        overflow-wrap: anywhere;
+      }
+
+      .result-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
+        gap: 20px;
+        align-items: center;
+        margin-top: 28px;
+        padding: clamp(14px, 2vw, 22px);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: linear-gradient(140deg, rgba(39, 35, 48, 0.96), rgba(19, 21, 32, 0.96));
+        box-shadow: 0 18px 45px rgba(0,0,0,0.2);
+      }
+
+      .result-card[hidden] { display: none; }
+      .result-card:not([hidden]) { animation: rise-in 420ms cubic-bezier(0.2, 0.75, 0.25, 1) both; }
+
+      .result-image {
+        display: block;
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        max-height: min(50svh, 500px);
+        object-fit: contain;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #080c16;
+      }
+
+      .result-details { min-width: 0; }
+
+      .result-details .result {
+        margin: 0 0 14px;
+        padding: 14px;
+        font-size: 1.5rem;
+      }
+
+      .confidence {
+        margin: 0;
+        color: rgba(237,243,255,0.78);
+        font-size: 1rem;
+      }
+
+      .confidence strong {
+        display: block;
+        margin-top: 6px;
+        color: var(--text);
+        font-size: 1.5rem;
+      }
+
+      .learner-note {
+        margin: 12px 0 0;
+        color: var(--cyan);
+        font-size: 0.84rem;
+        line-height: 1.5;
+      }
+
+      .learning-feedback {
+        margin-top: 18px;
+        padding: 15px;
+        border: 1px solid rgba(217, 185, 110, 0.3);
+        border-radius: 14px;
+        background: rgba(217, 185, 110, 0.055);
+      }
+
+      .learning-feedback h2 { margin: 0 0 6px; color: var(--cyan); font-size: 0.9rem; }
+      .learning-feedback p { margin: 0; color: var(--muted); font-size: 0.82rem; line-height: 1.5; }
+      .learning-feedback-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+      .learning-feedback-actions button { min-height: 38px; padding: 8px 12px; font-size: 0.8rem; }
+      .learning-feedback-actions .feedback-confirm { background: linear-gradient(120deg, #8b6840, #6e344a); }
+      .learning-feedback-actions .feedback-correction {
+        border: 1px solid rgba(217, 185, 110, 0.35);
+        background: rgba(13, 12, 20, 0.55);
+        color: var(--text);
+        box-shadow: none;
+      }
+      .learning-feedback-status { min-height: 1.4em; margin-top: 9px !important; color: var(--cyan) !important; }
+
+      @media (max-width: 760px) {
+        .page-header { align-items: flex-start; flex-direction: column; }
+        .saved-data-link { align-self: flex-start; }
+        .result-card { grid-template-columns: 1fr; }
+        .camera-panel { grid-template-columns: 1fr; }
+        .camera-view { min-height: min(62svh, 480px); }
+        .camera-view video { min-height: min(62svh, 480px); }
+        .camera-placeholder { min-height: min(62svh, 480px); }
+        .camera-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+
+      @media (max-width: 360px) {
+        body { padding: 10px; }
+        .app { padding: 16px; border-radius: 18px; }
+        .result-card { padding: 12px; }
+        .feed-badge { top: 14px; right: 14px; }
+        .mask-status { bottom: 14px; left: 14px; }
+        .camera-view::before { top: 12px; left: 12px; }
+        .camera-view::after { right: 12px; bottom: 12px; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="page-header">
+        <div class="page-title">
+          <span class="eyebrow">Vision security · AI powered</span>
+          <h1>Face Mask Detection</h1>
+          <p class="page-subtitle">Real-time face analysis, right from your camera.</p>
+        </div>
+        <a class="saved-data-link" href="{{ url_for('saved_data') }}">View saved data</a>
+      </header>
+
+      <section class="camera-panel" aria-label="Webcam capture">
+        <div class="camera-view">
+          <span class="feed-badge">Camera feed</span>
+          <span class="camera-scanline" aria-hidden="true"></span>
+          <span id="mask-status" class="mask-status" role="status" aria-live="polite" hidden></span>
+          <video id="camera-preview" autoplay muted playsinline hidden></video>
+          <div class="camera-placeholder" id="camera-placeholder">
+            <span>Camera is off</span>
+            <span>Start the camera to preview your image.</span>
+          </div>
+          <div class="camera-controls" role="group" aria-label="Camera power controls">
+            <button id="start-camera" type="button">Camera On</button>
+            <button id="stop-camera" class="secondary" type="button" disabled>Close Camera</button>
+          </div>
+        </div>
+        <div>
+          <div class="dataset-creator">
+            <label for="dataset-name">Create a dataset folder</label>
+            <div class="dataset-name-row">
+              <input id="dataset-name" type="text" maxlength="40" placeholder="e.g. mask_samples" autocomplete="off" />
+              <button id="create-dataset" class="secondary" type="button">Create</button>
+              <button id="clear-dataset" class="clear-dataset" type="button">Clear data</button>
+              <button id="delete-dataset" class="delete-dataset" type="button">Delete</button>
+            </div>
+            <p id="dataset-folder-status" class="dataset-folder-status" role="status" aria-live="polite">Enter a folder name to clear its saved images or delete the folder.</p>
+          </div>
+          <div class="network-camera">
+            <label for="network-camera-url">Connect a Wi-Fi/IP camera</label>
+            <input
+              id="network-camera-url"
+              type="text"
+              inputmode="url"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="rtsp://192.168.1.50:554/stream"
+              aria-describedby="network-camera-note"
+            />
+            <button id="connect-network-camera" class="secondary" type="button">Connect network camera</button>
+            <p id="network-camera-note" class="network-camera-note">Supports RTSP/RTSPS and HTTP/HTTPS streams on your private network. Camera login details in the address are sent only to this app and are not saved.</p>
+            <p id="network-camera-status" class="network-camera-status" role="status" aria-live="polite"></p>
+          </div>
+          <p id="camera-status" class="camera-status" role="status" aria-live="polite">Camera has not been started.</p>
+        </div>
+      </section>
+
+      <canvas id="capture-canvas" hidden></canvas>
+      <section id="result-card" class="result-card" aria-label="Mask detection result" hidden>
+        <img id="result-image" class="result-image" alt="Captured webcam image analyzed for mask detection" />
+        <div class="result-details">
+          <p id="result-label" class="result"></p>
+          <p class="confidence">Classifier confidence<strong id="result-confidence"></strong></p>
+          <p id="learner-note" class="learner-note" hidden></p>
+          <section class="learning-feedback" aria-labelledby="learning-feedback-title">
+            <h2 id="learning-feedback-title">Reinforcement learning feedback</h2>
+            <p>Confirm this result or choose the correct label to reward the learner.</p>
+            <div class="learning-feedback-actions" role="group" aria-label="Review prediction">
+              <button class="feedback-confirm" type="button" data-feedback-label="current">Prediction is correct</button>
+              <button class="feedback-correction" type="button" data-feedback-label="with_mask">With Mask</button>
+              <button class="feedback-correction" type="button" data-feedback-label="without_mask">Without Mask</button>
+            </div>
+            <p id="learning-feedback-status" class="learning-feedback-status" role="status" aria-live="polite"></p>
+          </section>
+        </div>
+      </section>
+    </div>
+    <script>
+      const video = document.querySelector("#camera-preview");
+      const canvas = document.querySelector("#capture-canvas");
+      const startButton = document.querySelector("#start-camera");
+      const stopButton = document.querySelector("#stop-camera");
+      const networkCameraUrlInput = document.querySelector("#network-camera-url");
+      const connectNetworkCameraButton = document.querySelector("#connect-network-camera");
+      const networkCameraStatus = document.querySelector("#network-camera-status");
+      const datasetNameInput = document.querySelector("#dataset-name");
+      const createDatasetButton = document.querySelector("#create-dataset");
+      const clearDatasetButton = document.querySelector("#clear-dataset");
+      const deleteDatasetButton = document.querySelector("#delete-dataset");
+      const datasetFolderStatus = document.querySelector("#dataset-folder-status");
+      const cameraPlaceholder = document.querySelector("#camera-placeholder");
+      const cameraView = document.querySelector(".camera-view");
+      const maskStatus = document.querySelector("#mask-status");
+      const cameraStatus = document.querySelector("#camera-status");
+      const resultCard = document.querySelector("#result-card");
+      const resultImage = document.querySelector("#result-image");
+      const resultLabel = document.querySelector("#result-label");
+      const resultConfidence = document.querySelector("#result-confidence");
+      const learnerNote = document.querySelector("#learner-note");
+      const learningFeedbackStatus = document.querySelector("#learning-feedback-status");
+      const learningFeedbackButtons = Array.from(document.querySelectorAll("[data-feedback-label]"));
+      let cameraStream;
+      let detectionActive = false;
+      let networkCameraConnected = false;
+      let detectionTimer;
+      let faceSavedForCurrentDetection = false;
+      let consecutiveNoFaceFrames = 0;
+      const noFaceFramesToResetDetection = 3;
+      let activeFeedbackId = null;
+      let activePredictionLabel = null;
+      let feedbackSubmissionInProgress = false;
+
+      learningFeedbackButtons.forEach((button) => {
+        button.disabled = true;
+        button.addEventListener("click", async () => {
+          if (!activeFeedbackId || feedbackSubmissionInProgress) return;
+
+          const feedbackId = activeFeedbackId;
+          const actualLabel = button.dataset.feedbackLabel === "current"
+            ? activePredictionLabel
+            : button.dataset.feedbackLabel;
+          activeFeedbackId = null;
+          feedbackSubmissionInProgress = true;
+          learningFeedbackButtons.forEach((feedbackButton) => {
+            feedbackButton.disabled = true;
+          });
+          learningFeedbackStatus.textContent = "Recording your feedback...";
+
+          try {
+            const response = await fetch("/feedback", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ feedback_id: feedbackId, actual_label: actualLabel }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Could not record feedback.");
+
+            const reward = data.reward > 0 ? "+1 reward" : "-1 reward";
+            learningFeedbackStatus.textContent = data.policy_active
+              ? `Feedback recorded (${reward}). The learner is adapting to this type of result.`
+              : `Feedback recorded (${reward}). ${data.state_feedback_count} of 5 examples collected for this type of result.`;
+          } catch (error) {
+            learningFeedbackStatus.textContent = error.message || "Could not record feedback.";
+          } finally {
+            feedbackSubmissionInProgress = false;
+          }
+        });
+      });
+
+      createDatasetButton.addEventListener("click", async () => {
+        createDatasetButton.disabled = true;
+        datasetFolderStatus.textContent = "Creating dataset folder...";
+
+        try {
+          const response = await fetch("/create-dataset", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dataset_name: datasetNameInput.value }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Could not create dataset folder.");
+
+          datasetFolderStatus.textContent = `Created: ${data.dataset_path}`;
+        } catch (error) {
+          datasetFolderStatus.textContent = error.message || "Could not create dataset folder.";
+        } finally {
+          createDatasetButton.disabled = false;
+        }
+      });
+
+      clearDatasetButton.addEventListener("click", async () => {
+        const datasetName = datasetNameInput.value.trim();
+        if (!datasetName) {
+          datasetFolderStatus.textContent = "Enter the dataset folder name to clear its images.";
+          return;
+        }
+        if (!window.confirm(`Delete all saved images from "${datasetName}"? The dataset folder will be kept.`)) {
+          return;
+        }
+
+        clearDatasetButton.disabled = true;
+        datasetFolderStatus.textContent = "Clearing saved images...";
+        try {
+          const response = await fetch("/clear-dataset", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dataset_name: datasetName }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Could not clear dataset images.");
+
+          datasetFolderStatus.textContent = `Removed ${data.deleted_count} image${data.deleted_count === 1 ? "" : "s"} from "${data.dataset_name}".`;
+        } catch (error) {
+          datasetFolderStatus.textContent = error.message || "Could not clear dataset images.";
+        } finally {
+          clearDatasetButton.disabled = false;
+        }
+      });
+
+      deleteDatasetButton.addEventListener("click", async () => {
+        const datasetName = datasetNameInput.value.trim();
+        if (!datasetName) {
+          datasetFolderStatus.textContent = "Enter the dataset folder name to delete.";
+          return;
+        }
+        if (!window.confirm(`Delete the "${datasetName}" dataset folder and all its images? This cannot be undone.`)) {
+          return;
+        }
+
+        deleteDatasetButton.disabled = true;
+        datasetFolderStatus.textContent = "Deleting dataset folder...";
+        try {
+          const response = await fetch("/delete-dataset", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dataset_name: datasetName }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Could not delete dataset folder.");
+
+          datasetFolderStatus.textContent = `Deleted dataset folder: ${data.dataset_name}`;
+          datasetNameInput.value = "";
+        } catch (error) {
+          datasetFolderStatus.textContent = error.message || "Could not delete dataset folder.";
+        } finally {
+          deleteDatasetButton.disabled = false;
+        }
+      });
+
+      async function detectFrame() {
+        if (!detectionActive) return;
+
+        if (!networkCameraConnected && video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+          detectionTimer = window.setTimeout(detectFrame, 200);
+          return;
+        }
+
+        try {
+          if (networkCameraConnected) {
+            const frameResponse = await fetch("/network-camera/frame");
+            if (!frameResponse.ok) {
+              const frameError = await frameResponse.json();
+              throw new Error(frameError.error || "Could not read the network camera.");
+            }
+            const bitmap = await createImageBitmap(await frameResponse.blob());
+            const scale = Math.min(1, 720 / bitmap.width);
+            canvas.width = Math.round(bitmap.width * scale);
+            canvas.height = Math.round(bitmap.height * scale);
+            canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+            bitmap.close();
+          } else {
+            const scale = Math.min(1, 720 / video.videoWidth);
+            canvas.width = Math.round(video.videoWidth * scale);
+            canvas.height = Math.round(video.videoHeight * scale);
+            canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+          }
+
+          const response = await fetch("/capture", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              image_data: canvas.toDataURL("image/jpeg", 0.82),
+              save_detection: !faceSavedForCurrentDetection,
+            }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Image analysis failed.");
+
+          if (data.face_detected) {
+            consecutiveNoFaceFrames = 0;
+            if (data.dataset_saved_path) {
+              faceSavedForCurrentDetection = true;
+            }
+            if (!feedbackSubmissionInProgress) {
+              activeFeedbackId = data.feedback_id;
+              activePredictionLabel = data.label === "With Mask" ? "with_mask" : "without_mask";
+              learningFeedbackButtons.forEach((button) => {
+                button.disabled = false;
+              });
+            }
+            const statusLabel = data.label === "With Mask" ? "WITH MASK" : "WITHOUT MASK";
+            maskStatus.textContent = data.learner_adjusted
+              ? `${statusLabel} · LEARNED`
+              : `${statusLabel} · ${(data.confidence * 100).toFixed(1)}%`;
+            maskStatus.className = `mask-status ${data.label === "With Mask" ? "with-mask" : "without-mask"}`;
+            maskStatus.hidden = false;
+            resultImage.src = data.image_data_url;
+            resultLabel.textContent = data.label;
+            resultLabel.className = `result ${data.label === "With Mask" ? "safe" : "danger"}`;
+            resultConfidence.textContent = `${(data.confidence * 100).toFixed(1)}%`;
+            learnerNote.hidden = !data.learner_adjusted;
+            if (data.learner_adjusted) {
+              learnerNote.textContent = `The feedback learner adjusted the classifier's ${data.model_label} result.`;
+            }
+            resultCard.hidden = false;
+            cameraStatus.textContent = data.learner_adjusted
+              ? `Live detection: ${data.label} · adjusted by user feedback from ${data.model_label}.`
+              : `Live detection: ${data.label} · ${(data.confidence * 100).toFixed(1)}% confidence.`;
+          } else {
+            consecutiveNoFaceFrames += 1;
+            if (consecutiveNoFaceFrames >= noFaceFramesToResetDetection) {
+              faceSavedForCurrentDetection = false;
+              consecutiveNoFaceFrames = 0;
+            }
+            activeFeedbackId = null;
+            learningFeedbackButtons.forEach((button) => {
+              button.disabled = true;
+            });
+            maskStatus.hidden = true;
+            cameraStatus.textContent = data.message;
+          }
+        } catch (error) {
+          maskStatus.hidden = true;
+          cameraStatus.textContent = error.message || "Could not analyze the camera frame.";
+        }
+
+        if (detectionActive) detectionTimer = window.setTimeout(detectFrame, 800);
+      }
+
+      startButton.addEventListener("click", async () => {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          cameraStatus.textContent = "Camera access is unavailable. Open this page on localhost or use a secure connection.";
+          return;
+        }
+
+        try {
+          if (networkCameraConnected) {
+            const response = await fetch("/network-camera/stop", { method: "POST" });
+            if (!response.ok) throw new Error("Could not disconnect the network camera.");
+            networkCameraConnected = false;
+            networkCameraStatus.textContent = "";
+          }
+          cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" },
+            audio: false,
+          });
+          video.srcObject = cameraStream;
+          maskStatus.hidden = true;
+          video.hidden = false;
+          cameraPlaceholder.hidden = true;
+          await video.play();
+          startButton.disabled = true;
+          stopButton.disabled = false;
+          detectionActive = true;
+          faceSavedForCurrentDetection = false;
+          consecutiveNoFaceFrames = 0;
+          cameraView.classList.add("is-live");
+          cameraStatus.textContent = "Live detection started. Center your face in the camera.";
+          detectFrame();
+        } catch (error) {
+          cameraStream?.getTracks().forEach((track) => track.stop());
+          cameraStream = null;
+          cameraStatus.textContent = error.name === "NotAllowedError"
+            ? "Camera permission was denied. Allow camera access in your browser and try again."
+            : "Could not open the camera. Check that it is connected and not in use by another app.";
+        }
+      });
+
+      connectNetworkCameraButton.addEventListener("click", async () => {
+        const streamUrl = networkCameraUrlInput.value.trim();
+        if (!streamUrl) {
+          networkCameraStatus.textContent = "Enter the camera's RTSP or HTTP stream address.";
+          return;
+        }
+        if (!window.confirm("Connect to this private-network camera stream? Continue only if you own the camera or have permission to view it. Browser camera permission prompts are not available for IP camera streams.")) {
+          return;
+        }
+
+        connectNetworkCameraButton.disabled = true;
+        networkCameraStatus.textContent = "Connecting to camera...";
+        try {
+          const response = await fetch("/network-camera/connect", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ stream_url: streamUrl }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Could not connect to the network camera.");
+
+          cameraStream?.getTracks().forEach((track) => track.stop());
+          cameraStream = null;
+          video.srcObject = null;
+          video.hidden = true;
+          cameraPlaceholder.hidden = false;
+          cameraPlaceholder.querySelector("span").textContent = "Wi-Fi camera connected";
+          cameraPlaceholder.querySelectorAll("span")[1].textContent = "Live face detection is using this camera.";
+          maskStatus.hidden = true;
+          networkCameraConnected = true;
+          networkCameraUrlInput.value = "";
+          networkCameraStatus.textContent = "Connected. You authorized this camera for live detection.";
+          startButton.disabled = true;
+          stopButton.disabled = false;
+          detectionActive = true;
+          faceSavedForCurrentDetection = false;
+          consecutiveNoFaceFrames = 0;
+          cameraView.classList.add("is-live");
+          cameraStatus.textContent = "Live detection started from the Wi-Fi camera.";
+          detectFrame();
+        } catch (error) {
+          networkCameraStatus.textContent = error.message || "Could not connect to the network camera.";
+        } finally {
+          connectNetworkCameraButton.disabled = false;
+        }
+      });
+
+      stopButton.addEventListener("click", async () => {
+        detectionActive = false;
+        faceSavedForCurrentDetection = false;
+        consecutiveNoFaceFrames = 0;
+        cameraView.classList.remove("is-live");
+        window.clearTimeout(detectionTimer);
+        cameraStream?.getTracks().forEach((track) => track.stop());
+        cameraStream = null;
+        video.srcObject = null;
+        video.hidden = true;
+        cameraPlaceholder.hidden = false;
+        maskStatus.hidden = true;
+        cameraPlaceholder.querySelector("span").textContent = "Camera is off";
+        cameraPlaceholder.querySelectorAll("span")[1].textContent = "Start the camera to preview your image.";
+        let stopError = "";
+        if (networkCameraConnected) {
+          try {
+            const response = await fetch("/network-camera/stop", { method: "POST" });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Could not disconnect the network camera.");
+            networkCameraConnected = false;
+            networkCameraStatus.textContent = "Network camera disconnected.";
+          } catch (error) {
+            stopError = error.message || "Could not disconnect the network camera.";
+          }
+        }
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        cameraStatus.textContent = stopError || "Camera stopped.";
+      });
+
+      window.addEventListener("pagehide", () => {
+        detectionActive = false;
+        window.clearTimeout(detectionTimer);
+        cameraStream?.getTracks().forEach((track) => track.stop());
+        if (networkCameraConnected) {
+          navigator.sendBeacon("/network-camera/stop", new Blob([], { type: "application/json" }));
+        }
+      });
+    </script>
+  </body>
+</html>

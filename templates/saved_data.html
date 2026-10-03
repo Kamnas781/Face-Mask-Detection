@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Saved Data | Face Mask Detection</title>
+    <style>
+      :root {
+        --bg: #090d18;
+        --panel: #1c1d2b;
+        --text: #f5ecd8;
+        --muted: #c0b69f;
+        --line: rgba(213, 181, 111, 0.22);
+        --gold: #d9b96e;
+        --safe: #2ecc71;
+        --danger: #e74c3c;
+      }
+
+      * { box-sizing: border-box; }
+
+      @keyframes saved-rise-in {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      body {
+        min-width: 240px;
+        min-height: 100vh;
+        margin: 0;
+        padding: clamp(12px, 3vw, 36px);
+        background:
+          radial-gradient(ellipse at 12% 4%, rgba(130, 93, 43, 0.2), transparent 34rem),
+          radial-gradient(ellipse at 94% 88%, rgba(106, 39, 62, 0.18), transparent 32rem),
+          #090d18;
+        color: var(--text);
+        font-family: "Segoe UI", Arial, sans-serif;
+      }
+
+      .page { width: min(1320px, 100%); margin: 0 auto; }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 24px;
+        animation: saved-rise-in 500ms ease-out both;
+      }
+
+      h1, h2, p { margin-top: 0; }
+      h1 { margin-bottom: 6px; font-size: clamp(1.7rem, 4vw, 2.5rem); overflow-wrap: anywhere; font-family: Georgia, "Times New Roman", serif; font-weight: 600; }
+      .subtitle, .image-name, .empty { color: var(--muted); }
+      .subtitle { margin-bottom: 0; }
+
+      .back-link {
+        flex: 0 0 auto;
+        padding: 10px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        border-color: rgba(217, 185, 110, 0.38);
+        background: rgba(217, 185, 110, 0.06);
+        color: var(--text);
+        text-decoration: none;
+        font-weight: 700;
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 24px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: rgba(28, 29, 43, 0.94);
+        animation: saved-rise-in 550ms 90ms ease-out both;
+      }
+
+      .dataset-select { display: grid; gap: 8px; min-width: min(360px, 100%); }
+      .no-datasets { margin: 0; color: var(--muted); line-height: 1.5; }
+      .dataset-select label, .latest-label { color: var(--muted); font-size: 0.8rem; font-weight: 700; }
+      select {
+        width: 100%;
+        padding: 11px 12px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #10111b;
+        color: var(--text);
+        font: inherit;
+      }
+
+      .clear-data-button {
+        padding: 11px 14px;
+        border: 1px solid rgba(217,185,110,0.6);
+        border-radius: 7px;
+        background: rgba(217,185,110,0.1);
+        color: #f0d58e;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .clear-data-button:disabled { cursor: wait; opacity: 0.65; }
+      .clear-data-status { margin: 8px 0 0; color: var(--muted); font-size: 0.85rem; }
+
+      .delete-selected-button {
+        padding: 11px 14px;
+        border: 1px solid rgba(231,76,60,0.7);
+        border-radius: 7px;
+        background: rgba(231,76,60,0.14);
+        color: #ffb8af;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .delete-selected-button:disabled { cursor: not-allowed; opacity: 0.55; }
+      .selection-controls { display: grid; gap: 8px; }
+      .image-select { display: flex; align-items: center; gap: 8px; padding: 10px 12px 0; color: var(--muted); font-size: 0.82rem; }
+      .image-select input { accent-color: var(--danger); }
+      .delete-selected-status { margin: 0; color: var(--muted); font-size: 0.85rem; }
+
+      .class-section { margin: 28px 0 36px; }
+      .class-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+      .class-heading h2 { margin: 0; font-size: 1.2rem; }
+      .class-heading span { color: var(--muted); font-size: 0.85rem; }
+      .with-mask { color: var(--safe); }
+      .without-mask { color: var(--danger); }
+
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(190px, 100%), 1fr));
+        gap: 14px;
+      }
+
+      .image-item {
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(28, 29, 43, 0.94);
+        animation: saved-rise-in 450ms ease-out both;
+      }
+
+      .image-item:nth-child(3n + 2) { animation-delay: 60ms; }
+      .image-item:nth-child(3n) { animation-delay: 120ms; }
+
+      .image-item img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: contain;
+        background: #080c16;
+      }
+
+      .image-name { margin: 0; padding: 10px 12px; font-size: 0.8rem; overflow-wrap: anywhere; }
+      .image-timestamp { margin: 0; padding: 0 12px 10px; color: var(--muted); font-size: 0.78rem; }
+      .empty { padding: 22px 0; border-top: 1px solid var(--line); }
+
+      @media (max-width: 560px) {
+        header, .toolbar { align-items: stretch; flex-direction: column; }
+        .back-link { align-self: flex-start; }
+        .dataset-select { min-width: 0; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header>
+        <div>
+          <h1>Saved face data</h1>
+          <p class="subtitle">Browse classified face crops by dataset and mask status.</p>
+        </div>
+        <a class="back-link" href="{{ url_for('index') }}">Back to camera</a>
+      </header>
+
+      <section class="toolbar" aria-label="Dataset selection">
+        {% if datasets %}
+          <form class="dataset-select" method="get" action="{{ url_for('saved_data') }}">
+            <label for="dataset">Your dataset folders</label>
+            <select id="dataset" name="dataset" onchange="this.form.submit()">
+              {% for dataset in datasets %}
+                <option value="{{ dataset.key }}" {% if dataset.key == selected_key %}selected{% endif %}>{{ dataset.name }}</option>
+              {% endfor %}
+            </select>
+          </form>
+          {% if selected_dataset_name %}
+            <div>
+              <div class="selection-controls">
+                <button
+                  id="delete-selected-data"
+                  class="delete-selected-button"
+                  type="button"
+                  data-dataset-name="{{ selected_dataset_name }}"
+                  disabled
+                >Delete selected</button>
+                <p id="delete-selected-status" class="delete-selected-status" role="status" aria-live="polite"></p>
+                <button
+                  id="clear-dataset-data"
+                  class="clear-data-button"
+                  type="button"
+                  data-dataset-name="{{ selected_dataset_name }}"
+                >Clear saved images</button>
+                <p id="clear-data-status" class="clear-data-status" role="status" aria-live="polite"></p>
+              </div>
+            </div>
+          {% endif %}
+        {% else %}
+          <p class="no-datasets">No custom datasets yet. Create one from the camera page.</p>
+        {% endif %}
+      </section>
+
+      {% if not datasets %}
+        <p class="empty">Create a named dataset folder to browse its saved face images here.</p>
+      {% endif %}
+      {% for class_data in classes %}
+        <section class="class-section" aria-labelledby="heading-{{ class_data.name }}">
+          <div class="class-heading">
+            <h2 id="heading-{{ class_data.name }}" class="{{ 'with-mask' if class_data.name == 'with_mask' else 'without-mask' }}">{{ class_data.name.replace('_', ' ')|title }}</h2>
+            <span>{{ class_data.count }} image{{ '' if class_data.count == 1 else 's' }}</span>
+          </div>
+          {% if class_data.images %}
+            <div class="gallery">
+              {% for image in class_data.images %}
+                <article class="image-item">
+                  <a href="{{ image.url }}" target="_blank" rel="noreferrer">
+                    <img src="{{ image.url }}" alt="{{ class_data.name.replace('_', ' ') }} face crop" loading="lazy" />
+                  </a>
+                  <label class="image-select">
+                    <input
+                      class="saved-image-checkbox"
+                      type="checkbox"
+                      data-class-name="{{ class_data.name }}"
+                      data-filename="{{ image.name }}"
+                    />
+                    <span>Select image for deletion</span>
+                  </label>
+                  <p class="image-name">{{ image.name }}</p>
+                  <p class="image-timestamp">
+                    Saved <time datetime="{{ image.timestamp.isoformat(timespec='seconds') }}">{{ image.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</time>
+                  </p>
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="empty">No images saved in this folder yet.</p>
+          {% endif %}
+        </section>
+      {% endfor %}
+    </main>
+    <script>
+      const deleteSelectedButton = document.querySelector("#delete-selected-data");
+      const deleteSelectedStatus = document.querySelector("#delete-selected-status");
+      const savedImageCheckboxes = document.querySelectorAll(".saved-image-checkbox");
+
+      function updateDeleteSelectedButton() {
+        if (deleteSelectedButton) {
+          deleteSelectedButton.disabled = !Array.from(savedImageCheckboxes).some((checkbox) => checkbox.checked);
+        }
+      }
+
+      savedImageCheckboxes.forEach((checkbox) => {
+        checkbox.addEventListener("change", updateDeleteSelectedButton);
+      });
+
+      deleteSelectedButton?.addEventListener("click", async () => {
+        const selectedImages = Array.from(savedImageCheckboxes)
+          .filter((checkbox) => checkbox.checked)
+          .map((checkbox) => ({
+            class_name: checkbox.dataset.className,
+            filename: checkbox.dataset.filename,
+          }));
+        if (selectedImages.length === 0) return;
+        if (!window.confirm(`Permanently delete ${selectedImages.length} selected image${selectedImages.length === 1 ? "" : "s"}?`)) {
+          return;
+        }
+
+        deleteSelectedButton.disabled = true;
+        deleteSelectedStatus.textContent = "Deleting selected images...";
+        try {
+          const response = await fetch("{{ url_for('delete_selected_data') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              dataset_name: deleteSelectedButton.dataset.datasetName,
+              images: selectedImages,
+            }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Could not delete selected images.");
+
+          deleteSelectedStatus.textContent = `Deleted ${data.deleted_count} image${data.deleted_count === 1 ? "" : "s"}. Refreshing...`;
+          window.setTimeout(() => window.location.reload(), 500);
+        } catch (error) {
+          deleteSelectedStatus.textContent = error.message || "Could not delete selected images.";
+          updateDeleteSelectedButton();
+        }
+      });
+
+      const clearDataButton = document.querySelector("#clear-dataset-data");
+      const clearDataStatus = document.querySelector("#clear-data-status");
+
+      clearDataButton?.addEventListener("click", async () => {
+        const datasetName = clearDataButton.dataset.datasetName;
+        if (!window.confirm(`Delete all saved images from "${datasetName}"? The dataset folder will be kept.`)) {
+          return;
+        }
+
+        clearDataButton.disabled = true;
+        clearDataStatus.textContent = "Clearing saved images...";
+        try {
+          const response = await fetch("{{ url_for('clear_dataset') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dataset_name: datasetName }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Could not clear dataset images.");
+
+          clearDataStatus.textContent = `Removed ${data.deleted_count} image${data.deleted_count === 1 ? "" : "s"}. Refreshing...`;
+          window.setTimeout(() => window.location.reload(), 500);
+        } catch (error) {
+          clearDataStatus.textContent = error.message || "Could not clear dataset images.";
+          clearDataButton.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
