@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *.h5
+!model.h5
 .env
 .env.*
 
