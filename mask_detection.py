@@ -7,10 +7,10 @@ import numpy as np
 import tensorflow as tf
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "mask_detector.h5")
+MODEL_PATH = os.path.join(BASE_DIR, "model.h5")
 
 if not os.path.exists(MODEL_PATH):
-    TRAIN_SCRIPT = os.path.join(BASE_DIR, "train_model.py")
+    TRAIN_SCRIPT = os.path.join(BASE_DIR, "train.py")
     if not os.path.isfile(TRAIN_SCRIPT):
         raise FileNotFoundError(f"Training script was not found: '{TRAIN_SCRIPT}'")
 

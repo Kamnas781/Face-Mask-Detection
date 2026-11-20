@@ -18,7 +18,7 @@ from PIL import Image, UnidentifiedImageError
 from reinforcement_learning import FeedbackLearner, FeedbackTokenError
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "mask_detector.h5")
+MODEL_PATH = os.path.join(BASE_DIR, "model.h5")
 DATASET_DIR = os.path.join(BASE_DIR, "face mask detection data")
 FEEDBACK_POLICY_PATH = os.path.join(DATASET_DIR, "mask_feedback_policy.json")
 LATEST_IMAGE_PATH = os.path.join(DATASET_DIR, "latest_detection.jpg")
@@ -33,7 +33,7 @@ app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
 
 if not os.path.exists(MODEL_PATH):
     raise FileNotFoundError(
-        f"Model file not found: '{MODEL_PATH}'. Train the model first using train_model.py."
+        f"Model file not found: '{MODEL_PATH}'. Train the model first using train.py."
     )
 
 model = tf.keras.models.load_model(MODEL_PATH)

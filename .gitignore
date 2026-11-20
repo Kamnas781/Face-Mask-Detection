@@ -8,9 +8,12 @@ __pycache__/
 dataset/*
 !dataset/with_mask/
 !dataset/without_mask/
+!dataset/incorrect_mask/
 dataset/with_mask/*
 dataset/without_mask/*
+dataset/incorrect_mask/*
 !dataset/with_mask/.gitkeep
 !dataset/without_mask/.gitkeep
+!dataset/incorrect_mask/.gitkeep
 
 face mask detection data/

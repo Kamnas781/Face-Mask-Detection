@@ -29,11 +29,14 @@ Training images are organized by their true label:
 dataset/
   with_mask/
   without_mask/
+  incorrect_mask/
 ```
 
-Put labeled face images in the corresponding folders. The training script
-requires at least five images in each class; use a larger, varied, and
-reasonably balanced dataset for more reliable results.
+Put labeled face images in the corresponding folders. The current model
+supports `with_mask` and `without_mask`; `incorrect_mask` is reserved for now
+and is not included in training. The training script requires at least five
+images in each supported class; use a larger, varied, and reasonably balanced
+dataset for more reliable results.
 
 The webcam collector `collect_dataset.py` saves labeled images into these
 folders. The web app can also save images into named folders under
@@ -50,7 +53,7 @@ From the project folder in PowerShell:
 If you do not use the included virtual environment, replace that interpreter
 path with your Python executable.
 
-The application expects the trained model file `mask_detector.h5` in the
+The application expects the trained model file `model.h5` in the
 project folder. If it is missing, train the model using the instructions
 below.
 
@@ -59,18 +62,18 @@ below.
 Train using `dataset/`:
 
 ```powershell
-.\.venv\Scripts\python.exe train_model.py
+.\.venv\Scripts\python.exe train.py
 ```
 
 To train using a named web-app dataset instead, pass its folder path. That
 folder must contain `with_mask` and `without_mask` subfolders:
 
 ```powershell
-.\.venv\Scripts\python.exe train_model.py --dataset "face mask detection data\user_datasets\My Dataset"
+.\.venv\Scripts\python.exe train.py --dataset "face mask detection data\user_datasets\My Dataset"
 ```
 
 Training uses TensorFlow/Keras with a MobileNetV2 image-classification model
-and saves the result as `mask_detector.h5` in the project folder. Restart the
+and saves the result as `model.h5` in the project folder. Restart the
 Flask app after training so it loads the updated model.
 
 ## Run detection
@@ -127,8 +130,7 @@ does not store additional face images.
 
 - **Camera permission:** allow camera access in the browser and open the app
   using `localhost` or a secure connection.
-- **Model missing:** run the training command above to create
-  `mask_detector.h5`.
+- **Model missing:** run the training command above to create `model.h5`.
 - **Images not appearing:** verify that the dataset folder and its
   `with_mask`/`without_mask` class folders exist, then refresh **View saved
   data**.

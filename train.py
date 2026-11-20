@@ -19,7 +19,7 @@ DATASET_DIR = (
     if os.path.isabs(dataset_argument)
     else os.path.join(BASE_DIR, dataset_argument)
 )
-MODEL_PATH = os.path.join(BASE_DIR, "mask_detector.h5")
+MODEL_PATH = os.path.join(BASE_DIR, "model.h5")
 
 if not os.path.isdir(DATASET_DIR):
     raise FileNotFoundError(

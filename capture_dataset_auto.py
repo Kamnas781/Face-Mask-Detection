@@ -9,7 +9,7 @@ DATASET_DIR = os.path.join(BASE_DIR, "face mask detection data")
 WITH_MASK_DIR = os.path.join(DATASET_DIR, "with_mask")
 WITHOUT_MASK_DIR = os.path.join(DATASET_DIR, "without_mask")
 LATEST_IMAGE_PATH = os.path.join(DATASET_DIR, "latest_detection.jpg")
-MODEL_PATH = os.path.join(BASE_DIR, "mask_detector.h5")
+MODEL_PATH = os.path.join(BASE_DIR, "model.h5")
 
 os.makedirs(WITH_MASK_DIR, exist_ok=True)
 os.makedirs(WITHOUT_MASK_DIR, exist_ok=True)
@@ -66,7 +66,7 @@ def open_webcam():
 
 if not os.path.exists(MODEL_PATH):
     raise FileNotFoundError(
-        f"Model file '{MODEL_PATH}' was not found. Run train_model.py first to train and save the model."
+        f"Model file '{MODEL_PATH}' was not found. Run train.py first to train and save the model."
     )
 
 model = tf.keras.models.load_model(MODEL_PATH)
